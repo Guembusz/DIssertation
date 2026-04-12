@@ -1,8 +1,8 @@
+from typing import List
 import cv2
-import os
 import numpy as np
 from pyzbar.pyzbar import decode
-from typing import List
+import logging
 
 
 def process_image(image: np.ndarray, window_name: str = "QR Scanner") -> List[str]:
@@ -29,18 +29,17 @@ def process_image(image: np.ndarray, window_name: str = "QR Scanner") -> List[st
 
 
 def process_image_file(filepath: str) -> List[str]:
-    """Called by app.py to scan a static image and return the results."""
-    if not os.path.exists(filepath):
-        return []
-
+    """
+    NEW ADDITION: Reads an image from a file path and passes it to the processor.
+    This bridges the gap between the Tkinter GUI upload button and the CV2 scanner.
+    """
     image = cv2.imread(filepath)
     if image is None:
+        logging.error(f"Could not read image at {filepath}. File may be corrupted or missing.")
         return []
 
-    payloads = process_image(image, "Static Image Scan")
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    return payloads
+    # Pass the loaded image to the main processing function
+    return process_image(image, "Uploaded QR Image")
 
 
 def scan_webcam_and_return() -> List[str]:

@@ -1,0 +1,4 @@
+{
+  "suspicious_short_URL:": ["bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly"],
+  "target_brands": ["paypal", "apple", "microsoft", "google", "amazon", "netflix", "bank", "dropbox"]
+}

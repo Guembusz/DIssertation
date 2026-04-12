@@ -1,5 +1,6 @@
 import unittest
-from analyzer import analyze_qr_data, check_heuristics, RiskLevel
+from unittest.mock import patch  # NEW IMPORT for academic testing
+from analyzer import analyze_qr_data, check_heuristics, RiskLevel, calculate_shannon_entropy
 
 
 class TestQRSecurity(unittest.TestCase):
@@ -12,13 +13,8 @@ class TestQRSecurity(unittest.TestCase):
 
     def test_fuzzy_heuristics(self):
         """Tests the Levenshtein distance typosquatting logic."""
-        # paypa1 instead of paypal
         self.assertTrue(check_heuristics("www.secure-paypa1-login.com", "/auth"))
-
-        # micr0soft instead of microsoft
         self.assertTrue(check_heuristics("www.micr0soft-support.net", "/login"))
-
-        # Legitimate brand should NOT flag the heuristic check
         self.assertFalse(check_heuristics("www.paypal.com", "/home"))
 
     def test_http_warning(self):
@@ -26,6 +22,32 @@ class TestQRSecurity(unittest.TestCase):
         result = analyze_qr_data("http://www.example.com")
         self.assertEqual(result.status, "WARNING")
         self.assertEqual(result.level, RiskLevel.WARNING)
+
+    def test_shannon_entropy(self):
+        """Tests if the mathematical heuristic catches randomized/DGA URLs."""
+        # Standard safe path should have low entropy
+        safe_entropy = calculate_shannon_entropy("/login/user")
+        self.assertTrue(safe_entropy < 4.0)
+
+        # Randomized malicious path should have high entropy
+        malicious_entropy = calculate_shannon_entropy("/a8f93j2xYZ882pQmzV")
+        self.assertTrue(malicious_entropy > 4.0)
+
+    @patch('analyzer.http_session.post')
+    def test_google_safe_browsing_mock(self, mock_post):
+        """
+        Enterprise Testing: Mocks the Google API to test if the system
+        handles 'THREAT_FOUND' correctly without making real internet calls.
+        """
+        # Fake the JSON response from Google to pretend we found malware
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"matches": [{"threatType": "MALWARE"}]}
+
+        result = analyze_qr_data("https://www.known-malware-site.com")
+
+        self.assertEqual(result.status, "MALICIOUS")
+        self.assertEqual(result.level, RiskLevel.MALICIOUS)
+        self.assertIn("Google Safe Browsing", result.message)
 
 
 if __name__ == "__main__":

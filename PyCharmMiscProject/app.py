@@ -64,6 +64,8 @@ class QRSecurityApp:
         self.root.after(0, self.webcam_btn.config, {"state": tk.NORMAL})
         self.root.after(0, self.upload_btn.config, {"state": tk.NORMAL})
 
+
+
     def update_ui(self, status: str, color: str, message: str):
         """Thread-safe UI updater."""
         self.status_label.config(text=status, bg=color)
@@ -74,6 +76,8 @@ class QRSecurityApp:
         if filepath:
             payloads = scanner.process_image_file(filepath)
             self.process_payloads(payloads)
+
+
 
     def run_webcam_scan(self):
         messagebox.showinfo("Webcam Scan",
