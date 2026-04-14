@@ -30,8 +30,8 @@ def process_image(image: np.ndarray, window_name: str = "QR Scanner") -> List[st
 
 def process_image_file(filepath: str) -> List[str]:
     """
-    NEW ADDITION: Reads an image from a file path and passes it to the processor.
-    This bridges the gap between the Tkinter GUI upload button and the CV2 scanner.
+    Reads an image from a file path and passes it to the processor.
+    Bridges the gap between the Tkinter GUI upload button and the CV2 scanner.
     """
     image = cv2.imread(filepath)
     if image is None:

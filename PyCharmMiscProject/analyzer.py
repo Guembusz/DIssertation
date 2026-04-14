@@ -33,11 +33,10 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-# =====================================================================
+
 # LOADING SETTINGS (Configuration)
-# =====================================================================
-# We load our target brands from a separate file. This is good practice because 
-# you shouldn't have to change the actual code just to add a new brand to check for.
+
+# Loads target brands from a separate file.
 try:
     with open('config.json', 'r') as config_file:
         config_data = json.load(config_file)
@@ -51,15 +50,20 @@ except FileNotFoundError:
     TARGET_BRANDS = ["paypal", "apple", "google", "microsoft"]
 
 # A 'Session' keeps the internet connection open, making multiple requests much faster.
+
+# Network Optimization Reference:
+# Utilizing a global requests.Session() to persist the TCP connection and
+# enable HTTP Keep-Alive pooling, drastically reducing the latency of the
+# HTTP HEAD unrolling requests (Reitz, Python Requests Documentation).
+http_session = requests.Session()
 http_session = requests.Session()
 
 
-# =====================================================================
+
 # DATA STRUCTURES (Custom Data Types)
-# =====================================================================
+
 class RiskLevel(Enum):
-    """An Enum is a way to define a strict set of allowed values. 
-    A scan can only be one of these four things."""
+    """An Enum is a way to define a strict set of allowed values."""
     SAFE = "green"
     WARNING = "orange"
     MALICIOUS = "red"
@@ -68,24 +72,29 @@ class RiskLevel(Enum):
 
 @dataclass
 class ScanResult:
-    """A Dataclass is just a simple container holding information about the result of our scan.
-    Think of it like a custom bundle of variables."""
+    """A Dataclass """
     status: str
     level: RiskLevel
     message: str
     severity: int  # A score from 0-100. Higher number = more dangerous.
 
 
-# =====================================================================
-# OBJECT-ORIENTED DESIGN: THE STRATEGY PATTERN
-# =====================================================================
-# Instead of one giant list of "if/else" statements, we break our security checks into separate "Classes".
-# This is called the 'Strategy Pattern'. If you want to invent a new security check later, 
-# you just build a new class, and you don't have to break the rest of the code!
+
+# OBJECT-ORIENTED DESIGN
+
+    """
+    Abstract Base Class defining the interface for all security algorithms.
+
+    Architectural Reference:
+    Implements the 'Strategy Design Pattern' as defined by Gamma et al. (1994) 
+    in 'Design Patterns: Elements of Reusable Object-Oriented Software'. 
+    This allows algorithms to be encapsulated and executed interchangeably 
+    without modifying the core multithreaded Controller logic.
+    """
+
 
 class ThreatHeuristic(abc.ABC):
-    """This is a 'Blueprint'. It says: 'Any security check we build MUST have an evaluate() function'. 
-    It doesn't do anything by itself, it just forces a rule on the classes below it."""
+    """Creates the blueprint """
 
     @abc.abstractmethod
     def evaluate(self, url: str, domain: str, path: str) -> Optional[ScanResult]:
@@ -93,20 +102,29 @@ class ThreatHeuristic(abc.ABC):
 
 
 class HomographHeuristic(ThreatHeuristic):
-    """Checks if hackers are using foreign alphabet characters that look like English letters (e.g., a fake 'a')."""
+    """Checks if hackers are using foreign alphabet characters that look like English letters ."""
 
     def evaluate(self, url: str, domain: str, path: str) -> Optional[ScanResult]:
         # 'isascii()' checks if the letters are standard English keyboard letters.
         if not domain.isascii():
             logger.warning(f"Homograph attack detected! Non-ASCII characters in domain: {domain}")
-            # We return a ScanResult with a high severity (100) because this is definitely an attack.
+            # Return a ScanResult with a high severity (100) as it's an attack
             return ScanResult("MALICIOUS", RiskLevel.MALICIOUS,
                               "IDN Homograph Attack Detected! Domain uses deceptive Unicode characters.", 100)
-        return None  # If it's safe, we return 'None' (nothing found).
+        return None  # If it's safe, return 'None'.
+
+
+
+# MATHEMATICAL REFERENCE:
+# Based on the string metric algorithm developed by Vladimir Levenshtein (1965).
+# This class utilizes Python's native difflib.SequenceMatcher (based on the
+# Ratcliff/Obershelp pattern recognition algorithm) to calculate the
+# mathematical ratio of similarity between the payload and targeted corporate brands.
+
 
 
 class TyposquattingHeuristic(ThreatHeuristic):
-    """Checks for misspellings of famous brands (e.g., 'paypa1.com' instead of 'paypal.com')."""
+    """Checks for misspellings of famous brands ."""
 
     def evaluate(self, url: str, domain: str, path: str) -> Optional[ScanResult]:
         clean_domain = domain.replace("www.", "")
@@ -117,7 +135,7 @@ class TyposquattingHeuristic(ThreatHeuristic):
                 # SequenceMatcher compares two words and gives a score from 0.0 to 1.0 based on how similar they are.
                 similarity = difflib.SequenceMatcher(None, brand.lower(), part.lower()).ratio()
 
-                # If they are 80% similar, but NOT the exact real domain, it's probably a typo-squatter!
+                # If they are 80% similar, but NOT the exact real domain, it's probably a typo-squatter
                 if similarity >= 0.8:
                     if not clean_domain.endswith(f"{brand}.com") and not clean_domain.endswith(f"{brand}.co.uk"):
                         logger.info(f"Fuzzy match detected! '{part}' is suspiciously close to '{brand}'")
@@ -127,8 +145,7 @@ class TyposquattingHeuristic(ThreatHeuristic):
 
 
 class EntropyHeuristic(ThreatHeuristic):
-    """Math check: Hackers often use randomly generated links (like /a8x9j2b). 
-    This uses Shannon Entropy to mathematically prove if a string is randomized."""
+    """Math check: Uses Shannon Entropy to mathematically prove if a string is randomized."""
 
     def evaluate(self, url: str, domain: str, path: str) -> Optional[ScanResult]:
         if not path:
@@ -149,7 +166,7 @@ class GoogleSafeBrowsingHeuristic(ThreatHeuristic):
     """Asks Google's database if they have seen this bad link before."""
 
     def evaluate(self, url: str, domain: str, path: str) -> Optional[ScanResult]:
-        # We NEVER type passwords directly in code. We get it from the computer's 'Environment Variables'
+        # NEVER type passwords directly in code. So it gets it from the computer's 'Environment Variables'
         api_key = os.environ.get("GOOGLE_SAFE_BROWSING_KEY", "YOUR_API_KEY_HERE")
         if api_key == "YOUR_API_KEY_HERE":
             return None  # If the developer forgot to add their API key, just skip this check quietly.
@@ -165,24 +182,24 @@ class GoogleSafeBrowsingHeuristic(ThreatHeuristic):
             }
         }
         try:
-            # We send the request over the internet to Google
+            # Send the request over the internet to Google
             response = http_session.post(api_url, json=payload, timeout=5)
             if "matches" in response.json():
                 return ScanResult("MALICIOUS", RiskLevel.MALICIOUS,
                                   "Flagged as malware/phishing by Google Safe Browsing API!", 95)
         except requests.RequestException:
-            pass  # If our internet is broken, don't crash the app. Just skip it.
+            pass  # If internet is broken, don't crash the app. Just skip it.
         return None
 
 
-# =====================================================================
+
 # THE MAIN ENGINE
-# =====================================================================
+
 class QRAnalyzerEngine:
-    """The manager that holds all our security checks and runs them."""
+    """The manager that holds all security checks and runs them."""
 
     def __init__(self):
-        # When we create an Engine, we hand it a list of all the security tests it needs to run.
+        # Hands the Engine all the security tests it needs to run.
         self.heuristics: List[ThreatHeuristic] = [
             HomographHeuristic(),
             TyposquattingHeuristic(),
@@ -210,7 +227,7 @@ class QRAnalyzerEngine:
         logger.info(f"Analyzing Payload: {payload}")
 
         try:
-            # Parses (chops up) the URL into useful pieces
+            # Parses the URL into useful pieces
             parsed_url = urllib.parse.urlparse(payload)
             if not all([parsed_url.scheme, parsed_url.netloc]):
                 return ScanResult("SAFE", RiskLevel.SAFE, "Payload is plain text (Not a clickable link).", 0)
@@ -231,7 +248,7 @@ class QRAnalyzerEngine:
         final_domain = parsed_url.netloc.lower()
         final_path = parsed_url.path
 
-        # We will collect any warnings or errors in this empty list
+        # Collect any warnings or errors in this empty list
         results: List[ScanResult] = []
 
         # Step 2: Check for older, unencrypted HTTP websites.
@@ -239,12 +256,11 @@ class QRAnalyzerEngine:
             results.append(
                 ScanResult("WARNING", RiskLevel.WARNING, f"Unencrypted HTTP connection to {final_domain}.", 50))
 
-        # =================================================================
+
         # MULTI-THREADING (Running tasks at the exact same time)
-        # =================================================================
-        # Normally, code runs line-by-line. That means checking Google takes 2 seconds, 
-        # then checking Math takes 1 second, total = 3 seconds wait time.
-        # A ThreadPoolExecutor hires "virtual workers" to do the jobs at the exact same time!
+
+        # Normally, code runs line-by-line.
+        # A ThreadPoolExecutor hires "virtual workers" to do the jobs at the exact same time.
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.heuristics)) as executor:
 
             # Hand a job to each worker
@@ -253,14 +269,14 @@ class QRAnalyzerEngine:
                 for heuristic in self.heuristics
             ]
 
-            # As soon as a worker finishes their job, grab their result and put it in our 'results' list
+            # As soon as a worker finishes their job, grab their result and put it in the 'results' list
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 if result:
                     results.append(result)
 
         # Step 4: Final Evaluation
-        # If any of our checks found a threat, we sort them by 'Severity' (most dangerous at the top)
+        # If any checks found a threat, sort them by 'Severity' (most dangerous at the top)
         if results:
             # lambda x: x.severity is a mini-function telling Python to look at the 'severity' number to sort them.
             results.sort(key=lambda x: x.severity, reverse=True)
@@ -270,25 +286,30 @@ class QRAnalyzerEngine:
         return ScanResult("SAFE", RiskLevel.SAFE, f"URL ({final_domain}) passed all security checks.", 0)
 
 
-# =====================================================================
+
 # WRAPPERS (Making sure older code doesn't break)
-# =====================================================================
-# We create one main Engine object to be used by the rest of the application
+
+# Create one main Engine object to be used by the rest of the application
 engine_instance = QRAnalyzerEngine()
 
 
 def analyze_qr_data(payload: str) -> ScanResult:
-    """Other files (like app.py) call this simple function, and we pass it to the complex Engine."""
+    """Other files (like app.py) call this simple function, and pass it to the complex Engine."""
     return engine_instance.analyze(payload)
 
 
-# These two functions are just here so that your existing 'tests.py' file doesn't crash.
+# These two functions are just here so that the existing 'tests.py' file doesn't crash.
 # They pretend to be the old functions, but actually route the test to our new OOP system.
 def check_heuristics(domain: str, path: str) -> bool:
     res = TyposquattingHeuristic().evaluate("dummy", domain, path)
     return res is not None
 
-
+# MATHEMATICAL REFERENCE:
+# Based on the foundational Information Theory mathematics proposed by
+# Claude E. Shannon (1948) in 'A Mathematical Theory of Communication'.
+# Equation: H(X) = -sum(P(x_i) * log2(P(x_i)))
+# The algorithm calculates the probability of each character's occurrence
+# and computes the negative sum of these probabilities multiplied by their base-2 logarithm.
 def calculate_shannon_entropy(path: str) -> float:
     if not path:
         return 0

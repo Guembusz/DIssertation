@@ -4,7 +4,7 @@ from analyzer import analyze_qr_data
 
 
 def run_multi_benchmark(iterations: int = 30):
-    # The 3 Execution Paths we are testing
+    # The 3 Execution Paths being tested
     test_cases = {
         "Best-Case (Safe URL)": "https://www.bbc.co.uk",
         "Mid-Case (DGA Threat)": "https://www.secure-login.com/x8f92j3b9a8f7d6c5e4f3a2b1c0d9e8f7a6b5c4d3",

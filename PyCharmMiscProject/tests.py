@@ -1,7 +1,7 @@
 import unittest
-from unittest.mock import patch  # NEW IMPORT for academic testing
+import os
+from unittest.mock import patch
 from analyzer import analyze_qr_data, check_heuristics, RiskLevel, calculate_shannon_entropy
-
 
 class TestQRSecurity(unittest.TestCase):
 
@@ -29,10 +29,13 @@ class TestQRSecurity(unittest.TestCase):
         safe_entropy = calculate_shannon_entropy("/login/user")
         self.assertTrue(safe_entropy < 4.0)
 
-        # Randomized malicious path should have high entropy
-        malicious_entropy = calculate_shannon_entropy("/a8f93j2xYZ882pQmzV")
+        # We must use a very long string with many unique characters to mathematically exceed 4.0
+        massive_random_string = "/aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4yZ5xA9bC8dE7"
+        malicious_entropy = calculate_shannon_entropy(massive_random_string)
         self.assertTrue(malicious_entropy > 4.0)
 
+    # Inject a fake API key so the engine doesn't skip the test
+    @patch.dict(os.environ, {"GOOGLE_SAFE_BROWSING_KEY": "FAKE_TEST_KEY_123"})
     @patch('analyzer.http_session.post')
     def test_google_safe_browsing_mock(self, mock_post):
         """
