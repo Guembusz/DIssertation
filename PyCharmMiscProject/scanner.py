@@ -52,10 +52,29 @@ def scan_webcam_and_return() -> List[str]:
         if not success:
             break
 
+        # 1. Decode the frame in real-time
+        decoded_objects = decode(frame)
+
+        # 2. Draw the dynamic bounding box over the live feed
+        for obj in decoded_objects:
+            # Draw a green box around the QR code
+            points = obj.polygon
+            if len(points) == 4:
+                pts = np.array([(val.x, val.y) for val in points], dtype=np.int32)
+                cv2.polylines(frame, [pts], True, (0, 255, 0), 3)
+
+            # Overlay the payload text
+            rect = obj.rect
+            payload = obj.data.decode('utf-8')
+            cv2.putText(frame, payload, (rect.left, rect.top - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+        # 3. Show the modified frame (with the green box) to the user
         cv2.imshow("Webcam - Press 'q' to scan", frame)
 
+        # 4. If 'q' is pressed, save the payloads currently in frame and exit
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            payloads = process_image(frame, "Captured Frame")
+            payloads = [obj.data.decode('utf-8') for obj in decoded_objects]
             break
 
     cap.release()
