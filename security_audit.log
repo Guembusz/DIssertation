@@ -1,0 +1,19 @@
+2026-04-14 11:40:06,536 - WARNING - config.json not found! Falling back to default lists.
+2026-04-14 11:40:06,538 - INFO - Fuzzy match detected! 'paypa1' is suspiciously close to 'paypal'
+2026-04-14 11:40:06,538 - INFO - Fuzzy match detected! 'micr0soft' is suspiciously close to 'microsoft'
+2026-04-14 11:40:06,539 - INFO - Analyzing Payload: https://www.known-malware-site.com
+2026-04-14 11:40:06,547 - INFO - Analyzing Payload: http://www.example.com
+2026-04-14 11:40:06,548 - INFO - Analyzing Payload: Hello World, this is a test.
+2026-04-14 11:40:21,879 - WARNING - config.json not found! Falling back to default lists.
+2026-04-14 11:40:21,881 - INFO - Fuzzy match detected! 'paypa1' is suspiciously close to 'paypal'
+2026-04-14 11:40:21,881 - INFO - Fuzzy match detected! 'micr0soft' is suspiciously close to 'microsoft'
+2026-04-14 11:40:21,882 - INFO - Analyzing Payload: https://www.known-malware-site.com
+2026-04-14 11:40:21,886 - INFO - Analyzing Payload: http://www.example.com
+2026-04-14 11:40:21,888 - INFO - Analyzing Payload: Hello World, this is a test.
+2026-04-14 11:47:25,507 - WARNING - config.json not found! Falling back to default lists.
+2026-04-14 11:47:25,509 - INFO - Fuzzy match detected! 'paypa1' is suspiciously close to 'paypal'
+2026-04-14 11:47:25,509 - INFO - Fuzzy match detected! 'micr0soft' is suspiciously close to 'microsoft'
+2026-04-14 11:47:25,510 - INFO - Analyzing Payload: https://www.known-malware-site.com
+2026-04-14 11:47:25,515 - INFO - Analyzing Payload: http://www.example.com
+2026-04-14 11:47:25,516 - INFO - Analyzing Payload: Hello World, this is a test.
+2026-04-14 12:13:45,138 - WARNING - config.json not found! Falling back to default lists.
